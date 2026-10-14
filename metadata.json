@@ -1,0 +1,6 @@
+{
+  "name": "Android Jetpack Compose Dating App",
+  "description": "Native Android Dating App architecture (Kotlin, Jetpack Compose, MVVM) with interactive preview and complete clean code files.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
