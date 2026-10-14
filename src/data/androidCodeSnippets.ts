@@ -1,105 +1,35 @@
 export interface CodeFile {
   filename: string;
   path: string;
+  package: string;
   language: string;
+  layer: 'Model' | 'ViewModel' | 'UI Component' | 'Screen' | 'Activity' | 'Config';
   description: string;
   code: string;
 }
 
 export const ANDROID_CODE_FILES: CodeFile[] = [
   {
-    filename: "build.gradle.kts",
-    path: "app/build.gradle.kts",
-    language: "kotlin",
-    description: "Khai báo dependencies: Jetpack Compose, Material 3, Coil và Lifecycle ViewModel.",
-    code: `plugins {
-    alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.compose)
-}
-
-android {
-    namespace = "com.example.datingapp"
-    compileSdk = 35
-
-    defaultConfig {
-        applicationId = "com.example.datingapp"
-        minSdk = 26
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-    buildFeatures {
-        compose = true
-    }
-}
-
-dependencies {
-    // AndroidX Core & Lifecycle
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-
-    // Jetpack Compose & Material 3
-    implementation(platform(libs.androidx.compose.bom))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-
-    // Thư viện Coil tải ảnh từ URL cho Jetpack Compose
-    implementation("io.coil-kt:coil-compose:2.7.0")
-
-    // Activity Compose
-    implementation("androidx.activity:activity-compose:1.9.3")
-
-    // Test dependencies
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
-}`
-  },
-  {
     filename: "UserProfile.kt",
-    path: "app/src/main/java/com/example/datingapp/data/model/UserProfile.kt",
+    path: "app/src/main/java/com/example/datingapp/model/UserProfile.kt",
+    package: "com.example.datingapp.model",
     language: "kotlin",
-    description: "Data Model đại diện cho một hồ sơ người dùng theo đúng yêu cầu.",
-    code: `package com.example.datingapp.data.model
+    layer: "Model",
+    description: "Data class UserProfile đại diện cho dữ liệu hồ sơ cá nhân theo đúng yêu cầu.",
+    code: `package com.example.datingapp.model
+
+import androidx.compose.runtime.Immutable
 
 /**
  * Data Model lưu trữ thông tin hồ sơ người dùng
- * @property id Định danh duy nhất
+ * @property id Định danh duy nhất của hồ sơ
  * @property name Tên hiển thị
  * @property age Tuổi
- * @property bio Tiểu sử ngắn
+ * @property bio Tiểu sử giới thiệu bản thân
  * @property imageUrl Đường dẫn ảnh đại diện (URL)
- * @property distance Khoảng cách tới vị trí hiện tại
+ * @property distance Khoảng cách địa lý tới vị trí hiện tại
  */
+@Immutable
 data class UserProfile(
     val id: String,
     val name: String,
@@ -111,29 +41,34 @@ data class UserProfile(
   },
   {
     filename: "DatingViewModel.kt",
-    path: "app/src/main/java/com/example/datingapp/ui/DatingViewModel.kt",
+    path: "app/src/main/java/com/example/datingapp/viewmodel/DatingViewModel.kt",
+    package: "com.example.datingapp.viewmodel",
     language: "kotlin",
-    description: "ViewModel quản lý StateFlow danh sách hồ sơ, mock data và các action vuốt/bỏ qua/thích.",
-    code: `package com.example.datingapp.ui
+    layer: "ViewModel",
+    description: "ViewModel quản lý StateFlow danh sách hồ sơ, mock data và các hàm onSwipeLeft / onSwipeRight.",
+    code: `package com.example.datingapp.viewmodel
 
 import androidx.lifecycle.ViewModel
-import com.example.datingapp.data.model.UserProfile
+import com.example.datingapp.model.UserProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * UI State của màn hình hẹn hò
+ * Trạng thái giao diện của màn hình hẹn hò
  */
 data class DatingUiState(
     val profiles: List<UserProfile> = emptyList(),
     val lastActionMessage: String? = null
 )
 
+/**
+ * ViewModel quản lý danh sách hồ sơ và các logic vuốt/chọn
+ */
 class DatingViewModel : ViewModel() {
 
-    // Danh sách dữ liệu mẫu (Mock data 4-5 người dùng với ảnh chất lượng cao)
+    // Danh sách dữ liệu mẫu ban đầu (Mock Data 5 người dùng)
     private val initialProfiles = listOf(
         UserProfile(
             id = "1",
@@ -181,15 +116,15 @@ class DatingViewModel : ViewModel() {
     val uiState: StateFlow<DatingUiState> = _uiState.asStateFlow()
 
     /**
-     * Bỏ qua hồ sơ hiện tại (Swipe Left / Bấm X)
+     * Bỏ qua hồ sơ hiện tại (Bấm X hoặc quẹt sang trái)
      */
     fun onSwipeLeft() {
         _uiState.update { currentState ->
-            val currentList = currentState.profiles
-            if (currentList.isNotEmpty()) {
-                val removed = currentList.first()
+            val list = currentState.profiles
+            if (list.isNotEmpty()) {
+                val removed = list.first()
                 currentState.copy(
-                    profiles = currentList.drop(1),
+                    profiles = list.drop(1),
                     lastActionMessage = "Đã bỏ qua \${removed.name}"
                 )
             } else {
@@ -199,15 +134,15 @@ class DatingViewModel : ViewModel() {
     }
 
     /**
-     * Thích hồ sơ hiện tại (Swipe Right / Bấm Trái tim)
+     * Thích hồ sơ hiện tại (Bấm Trái tim hoặc quẹt sang phải)
      */
     fun onSwipeRight() {
         _uiState.update { currentState ->
-            val currentList = currentState.profiles
-            if (currentList.isNotEmpty()) {
-                val liked = currentList.first()
+            val list = currentState.profiles
+            if (list.isNotEmpty()) {
+                val liked = list.first()
                 currentState.copy(
-                    profiles = currentList.drop(1),
+                    profiles = list.drop(1),
                     lastActionMessage = "Đã thích \${liked.name} ❤️"
                 )
             } else {
@@ -217,147 +152,61 @@ class DatingViewModel : ViewModel() {
     }
 
     /**
-     * Tải lại danh sách hồ sơ khi hết thẻ
+     * Khôi phục/Tải lại danh sách hồ sơ khi hết thẻ
      */
     fun resetProfiles() {
         _uiState.update {
-            DatingUiState(profiles = initialProfiles, lastActionMessage = "Đã làm mới danh sách!")
+            DatingUiState(
+                profiles = initialProfiles,
+                lastActionMessage = "Đã làm mới danh sách hồ sơ!"
+            )
         }
     }
 }`
   },
   {
-    filename: "DatingScreen.kt",
-    path: "app/src/main/java/com/example/datingapp/ui/DatingScreen.kt",
+    filename: "ProfileCard.kt",
+    path: "app/src/main/java/com/example/datingapp/ui/components/ProfileCard.kt",
+    package: "com.example.datingapp.ui.components",
     language: "kotlin",
-    description: "Toàn bộ giao diện Jetpack Compose: Hiệu ứng quẹt thẻ cảm ứng, ảnh Coil, thông tin hồ sơ và các nút bấm Like / Pass.",
-    code: `package com.example.datingapp.ui
+    layer: "UI Component",
+    description: "Component Thẻ Hồ Sơ: Tải ảnh URL qua Coil, thông tin tên tuổi, khoảng cách, bio đè lên ảnh.",
+    code: `package com.example.datingapp.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import com.example.datingapp.data.model.UserProfile
+import coil.request.ImageRequest
+import com.example.datingapp.model.UserProfile
 import kotlinx.coroutines.launch
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DatingScreen(
-    viewModel: DatingViewModel = viewModel(),
-    modifier: Modifier = Modifier
-) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val profiles = uiState.profiles
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Favorite,
-                            contentDescription = "Logo",
-                            tint = Color(0xFFFD297B)
-                        )
-                        Text(
-                            text = "Dating Match",
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF6F8FB))
-        ) {
-            if (profiles.isEmpty()) {
-                // Màn hình khi danh sách đã hết hồ sơ
-                EmptyProfilesView(
-                    onRefresh = { viewModel.resetProfiles() },
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Khu vực chứa Thẻ Hồ Sơ xếp chồng (Profile Cards Stack)
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        // Hiển thị tối đa 2 thẻ (thẻ dưới để tạo chiều sâu)
-                        val visibleProfiles = profiles.take(2).reversed()
-                        for (profile in visibleProfiles) {
-                            val isTopCard = profile.id == profiles.first().id
-                            ProfileCard(
-                                profile = profile,
-                                isTopCard = isTopCard,
-                                onSwipeLeft = { viewModel.onSwipeLeft() },
-                                onSwipeRight = { viewModel.onSwipeRight() }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 2 Nút bấm hành động bên dưới (Bỏ qua & Thích)
-                    ActionButtonsRow(
-                        onDislikeClick = { viewModel.onSwipeLeft() },
-                        onLikeClick = { viewModel.onSwipeRight() },
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                }
-            }
-        }
-    }
-}
+import kotlin.math.abs
 
 /**
- * Thẻ hiển thị hồ sơ cá nhân với cử chỉ kéo/quẹt (Drag to swipe)
+ * Component hiển thị Thẻ Hồ Sơ người dùng: Ảnh tải qua Coil,
+ * thông tin tên tuổi, tiểu sử đè lên góc dưới và cử chỉ vuốt quẹt ngón tay.
  */
 @Composable
 fun ProfileCard(
@@ -367,8 +216,6 @@ fun ProfileCard(
     onSwipeRight: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
     val offsetX = remember { Animatable(0f) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -386,22 +233,15 @@ fun ProfileCard(
                     coroutineScope.launch {
                         when {
                             offsetX.value > threshold -> {
-                                offsetX.animateTo(
-                                    targetValue = 1200f,
-                                    animationSpec = tween(durationMillis = 250)
-                                )
+                                offsetX.animateTo(1200f, tween(240))
                                 onSwipeRight()
                             }
                             offsetX.value < -threshold -> {
-                                offsetX.animateTo(
-                                    targetValue = -1200f,
-                                    animationSpec = tween(durationMillis = 250)
-                                )
+                                offsetX.animateTo(-1200f, tween(240))
                                 onSwipeLeft()
                             }
                             else -> {
-                                // Trả về vị trí ban đầu nếu chưa vượt ngưỡng
-                                offsetX.animateTo(0f, animationSpec = tween(durationMillis = 200))
+                                offsetX.animateTo(0f, tween(200))
                             }
                         }
                     }
@@ -412,12 +252,11 @@ fun ProfileCard(
         Modifier
     }
 
-    // Tính góc nghiêng (rotation) theo khoảng cách kéo
     val rotation = (offsetX.value / 60f).coerceIn(-20f, 20f)
 
     Card(
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isTopCard) 8.dp else 3.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isTopCard) 8.dp else 2.dp),
         modifier = modifier
             .fillMaxWidth()
             .fillMaxHeight(0.92f)
@@ -432,15 +271,18 @@ fun ProfileCard(
             .then(dragModifier)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Ảnh đại diện tải từ URL qua thư viện Coil
+            // Tải ảnh trực tiếp từ URL với thư viện Coil
             AsyncImage(
-                model = profile.imageUrl,
-                contentDescription = profile.name,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(profile.imageUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Ảnh đại diện của \${profile.name}",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Lớp Gradient phủ đen dần từ giữa xuống đáy để làm nổi bật chữ
+            // Lớp Gradient làm tối từ giữa xuống đáy để đọc rõ văn bản
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -448,7 +290,7 @@ fun ProfileCard(
                         Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.2f),
+                                Color.Black.copy(alpha = 0.25f),
                                 Color.Black.copy(alpha = 0.85f)
                             ),
                             startY = 400f
@@ -456,38 +298,24 @@ fun ProfileCard(
                     )
             )
 
-            // Nhãn hiển thị khi đang kéo sang trái hoặc phải
-            if (isTopCard && kotlin.math.abs(offsetX.value) > 40f) {
-                if (offsetX.value > 0) {
-                    Text(
-                        text = "LIKE",
-                        color = Color(0xFF22C55E),
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Black,
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(24.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.85f))
-                            .padding(horizontal = 14.dp, vertical = 6.dp)
-                    )
-                } else {
-                    Text(
-                        text = "NOPE",
-                        color = Color(0xFFEF4444),
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Black,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(24.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.85f))
-                            .padding(horizontal = 14.dp, vertical = 6.dp)
-                    )
-                }
+            // Nhãn hiển thị tức thời trạng thái Like / Pass khi người dùng kéo thẻ
+            if (isTopCard && abs(offsetX.value) > 40f) {
+                val isLike = offsetX.value > 0
+                Text(
+                    text = if (isLike) "THÍCH" else "BỎ QUA",
+                    color = if (isLike) Color(0xFF22C55E) else Color(0xFFEF4444),
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier
+                        .align(if (isLike) Alignment.TopStart else Alignment.TopEnd)
+                        .padding(24.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White.copy(alpha = 0.85f))
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                )
             }
 
-            // Thông tin người dùng đè lên góc dưới của ảnh
+            // Toàn bộ thông tin: Tên, Tuổi, Khoảng cách và Tiểu sử đè lên góc dưới
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
@@ -520,7 +348,7 @@ fun ProfileCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.LocationOn,
-                        contentDescription = "Vị trí",
+                        contentDescription = "Khoảng cách",
                         tint = Color(0xFFE2E8F0),
                         modifier = Modifier.size(16.dp)
                     )
@@ -544,13 +372,40 @@ fun ProfileCard(
             }
         }
     }
-}
+}`
+  },
+  {
+    filename: "ActionButtonBar.kt",
+    path: "app/src/main/java/com/example/datingapp/ui/components/ActionButtonBar.kt",
+    package: "com.example.datingapp.ui.components",
+    language: "kotlin",
+    layer: "UI Component",
+    description: "Component chứa 2 nút hành động: Nút Bỏ qua (X/đỏ) và Nút Thích (Trái tim/hồng).",
+    code: `package com.example.datingapp.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 /**
- * 2 Nút bấm chính: Bỏ qua (X) và Thích (Trái tim)
+ * Component chứa 2 nút hành động chính ở dưới thẻ:
+ * - Nút "Bỏ qua" (Hình dấu X / Màu đỏ)
+ * - Nút "Thích" (Hình trái tim / Màu hồng nổi bật)
  */
 @Composable
-fun ActionButtonsRow(
+fun ActionButtonBar(
     onDislikeClick: () -> Unit,
     onLikeClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -560,7 +415,7 @@ fun ActionButtonsRow(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Nút Bỏ qua (X - Màu đỏ)
+        // Nút Bỏ qua (X / Đỏ)
         IconButton(
             onClick = onDislikeClick,
             modifier = Modifier
@@ -572,12 +427,12 @@ fun ActionButtonsRow(
             Icon(
                 imageVector = Icons.Default.Close,
                 contentDescription = "Bỏ qua",
-                tint = Color(0xFFEF4444), // Đỏ
+                tint = Color(0xFFEF4444),
                 modifier = Modifier.size(36.dp)
             )
         }
 
-        // Nút Thích (Trái tim - Gradient hồng / đỏ cam)
+        // Nút Thích (Trái tim / Hồng)
         IconButton(
             onClick = onLikeClick,
             modifier = Modifier
@@ -589,18 +444,154 @@ fun ActionButtonsRow(
             Icon(
                 imageVector = Icons.Default.Favorite,
                 contentDescription = "Thích",
-                tint = Color(0xFFFD297B), // Hồng cam quyến rũ
+                tint = Color(0xFFFD297B),
                 modifier = Modifier.size(36.dp)
             )
+        }
+    }
+}`
+  },
+  {
+    filename: "DatingScreen.kt",
+    path: "app/src/main/java/com/example/datingapp/ui/screens/DatingScreen.kt",
+    package: "com.example.datingapp.ui.screens",
+    language: "kotlin",
+    layer: "Screen",
+    description: "Màn hình chính kết nối ProfileCard và ActionButtonBar, xử lý Empty State khi hết thẻ.",
+    code: `package com.example.datingapp.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.datingapp.ui.components.ActionButtonBar
+import com.example.datingapp.ui.components.ProfileCard
+import com.example.datingapp.viewmodel.DatingViewModel
+
+/**
+ * Màn hình hẹn hò chính (DatingScreen):
+ * Lắp ráp Thẻ Hồ Sơ (ProfileCard) ở giữa và Bộ nút bấm (ActionButtonBar) ở phía dưới.
+ * Tự động chuyển sang Empty State khi danh sách không còn hồ sơ nào.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DatingScreen(
+    viewModel: DatingViewModel = viewModel(),
+    modifier: Modifier = Modifier
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val profiles = uiState.profiles
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "Logo",
+                            tint = Color(0xFFFD297B)
+                        )
+                        Text(
+                            text = "Dating Match",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.resetProfiles() }) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Làm mới danh sách"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        },
+        modifier = modifier.fillMaxSize()
+    ) { innerPadding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(Color(0xFFF6F8FB))
+        ) {
+            if (profiles.isEmpty()) {
+                // Hiển thị khi danh sách đã hết thẻ
+                EmptyProfilesView(
+                    onRefresh = { viewModel.resetProfiles() },
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Khu vực Thẻ Hồ Sơ chính giữa màn hình (Profile Cards Stack)
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Hiển thị tối đa 2 thẻ để tạo cảm giác chiều sâu 3D
+                        val visibleProfiles = profiles.take(2).reversed()
+                        for (profile in visibleProfiles) {
+                            val isTopCard = profile.id == profiles.first().id
+                            ProfileCard(
+                                profile = profile,
+                                isTopCard = isTopCard,
+                                onSwipeLeft = { viewModel.onSwipeLeft() },
+                                onSwipeRight = { viewModel.onSwipeRight() }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 2 nút bấm phía dưới thẻ (Bỏ qua & Thích)
+                    ActionButtonBar(
+                        onDislikeClick = { viewModel.onSwipeLeft() },
+                        onLikeClick = { viewModel.onSwipeRight() },
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+            }
         }
     }
 }
 
 /**
- * Hiển thị khi danh sách hết thẻ hồ sơ
+ * Giao diện hiển thị thông báo "Không còn hồ sơ nào gần bạn"
  */
 @Composable
-fun EmptyProfilesView(
+private fun EmptyProfilesView(
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -613,7 +604,7 @@ fun EmptyProfilesView(
     ) {
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(96.dp)
                 .clip(CircleShape)
                 .background(Color(0xFFFFEDF2)),
             contentAlignment = Alignment.Center
@@ -622,7 +613,7 @@ fun EmptyProfilesView(
                 imageVector = Icons.Default.Favorite,
                 contentDescription = null,
                 tint = Color(0xFFFD297B),
-                modifier = Modifier.size(52.dp)
+                modifier = Modifier.size(48.dp)
             )
         }
 
@@ -638,10 +629,10 @@ fun EmptyProfilesView(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Bạn đã xem hết các gợi ý hôm nay. Hãy mở rộng phạm vi tìm kiếm hoặc làm mới để xem lại.",
+            text = "Bạn đã xem hết các gợi ý hôm nay. Hãy làm mới để khám phá lại từ đầu.",
             fontSize = 14.sp,
             color = Color.Gray,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -667,14 +658,15 @@ fun EmptyProfilesView(
             )
         }
     }
-}
-`
+}`
   },
   {
     filename: "MainActivity.kt",
     path: "app/src/main/java/com/example/datingapp/MainActivity.kt",
+    package: "com.example.datingapp",
     language: "kotlin",
-    description: "Activity khởi chạy chính kết nối DatingScreen vào Jetpack Compose setContent.",
+    layer: "Activity",
+    description: "ComponentActivity khởi chạy, gọi setContent gắn kết DatingScreen.",
     code: `package com.example.datingapp
 
 import android.os.Bundle
@@ -685,7 +677,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.example.datingapp.ui.DatingScreen
+import com.example.datingapp.ui.screens.DatingScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -702,31 +694,106 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}`
+  },
+  {
+    filename: "build.gradle.kts",
+    path: "app/build.gradle.kts",
+    package: "gradle",
+    language: "kotlin",
+    layer: "Config",
+    description: "Khai báo dependencies: Coil, Material 3, Lifecycle ViewModel Compose.",
+    code: `plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
 }
-`
+
+android {
+    namespace = "com.example.datingapp"
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId = "com.example.datingapp"
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    buildFeatures {
+        compose = true
+    }
+}
+
+dependencies {
+    // AndroidX Core & Lifecycle ViewModel
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+
+    // Activity Compose
+    implementation(libs.androidx.activity.compose)
+
+    // Jetpack Compose & Material 3
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
+
+    // Thư viện Coil tải ảnh URL cho Jetpack Compose
+    implementation(libs.coil.compose)
+
+    debugImplementation(libs.androidx.compose.ui.tooling)
+}`
   },
   {
     filename: "AndroidManifest.xml",
     path: "app/src/main/AndroidManifest.xml",
+    package: "manifest",
     language: "xml",
-    description: "Cấp quyền truy cập INTERNET để thư viện Coil tải ảnh từ URL.",
+    layer: "Config",
+    description: "Khai báo quyền truy cập INTERNET để Coil tải ảnh từ mạng.",
     code: `<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Cần quyền INTERNET để tải ảnh từ URL qua Coil -->
+    <!-- Cấp quyền INTERNET để thư viện Coil tải ảnh từ URL -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:label="Dating App"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.DatingApp">
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:theme="@style/Theme.DatingApp">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
